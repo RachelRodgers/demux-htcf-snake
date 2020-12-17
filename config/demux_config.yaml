@@ -1,0 +1,11 @@
+---
+
+Paths:
+  Reads:  data/raw_data
+
+Patterns:
+  ReadExtensions: ["_001.fastq.gz"]
+  Read1Identifiers: ["_R1"]
+  Read2Identifiers: ["_R2"]
+  Index1Identifiers: ["_I1"]
+  Index2Identifiers: ["_I2"]
