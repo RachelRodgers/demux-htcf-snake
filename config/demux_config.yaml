@@ -2,10 +2,20 @@
 
 Paths:
   Reads:  data/raw_data
-
+  Map: resources/mappingFile_190201.txt 
+ 
 Patterns:
-  ReadExtensions: ["_001.fastq.gz"]
-  Read1Identifiers: ["_R1"]
-  Read2Identifiers: ["_R2"]
-  Index1Identifiers: ["_I1"]
-  Index2Identifiers: ["_I2"]
+  ReadExtensions: [".fastq.gz"]
+  Read1Identifiers: ["_R1_001"]
+  Read2Identifiers: ["_R2_001"]
+  Index1Identifiers: ["_I1_001"]
+  Index2Identifiers: ["_I2_001"]
+
+Barcodes:
+  BC1_len: 10
+  BC2_len: 8
+  rev_BC1: False
+  BC_type: golay_18
+
+Tools:
+  qiime: qiime/1.9.0

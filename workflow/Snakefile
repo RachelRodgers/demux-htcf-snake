@@ -1,23 +1,63 @@
+"""
+Snakefile for demultiplexing 16S sequence
+files using QIIME1 on HTCF
+
+Rachel Rodgers, Dec 2020
+"""
+
 import os
 import sys
 
-sys.path.append("./workflow/scripts/snakemake_helpers")
+#sys.path.append("./workflow/scripts/snakemake_helpers")
+sys.path.append(os.path.join("workflow", "scripts", "snakemake_helpers"))
 
 from snakemake_helpers import *
 
 #----- Snakemake Set Up -----#
 
-configfile: "./config/demux_config.yaml"
+#configfile: "./config/demux_config.yaml"
+configfile: os.path.join("config", "demux_config.yaml")
+
+# Barcode Information
+bc1_len = config["Barcodes"]["BC1_len"]
+bc2_len = config["Barcodes"]["BC2_len"]
+rev_bc1 = config["Barcodes"]["rev_BC1"]
+bc_type = config["Barcodes"]["BC_type"]
+
+# Paths
+MAP = config["Paths"]["Map"]
+READDIR = config["Paths"]["Reads"]
+
+# Tools
+qiime = config["Tools"]["qiime"]
+
+#----- Write Extract Barcodes Command-----#
+#extractCommand = open("./workflow/scripts/extractCommand.sh", "w")
+extractCommand = open(os.path.join("workflow", "scripts", "extractCommand.sh"), "w")
+
+#barcode1 = "results/concatenated/concatenated_I1.fastq.gz"
+#barcode2 = "results/concatenated/concatenated_I2.fastq.gz"
+#barcodesOut = "results/barcodes"
+
+barcode1 = os.path.join("results", "concatenated", "concatenated_I1.fastq.gz")
+barcode2 = os.path.join("results", "concatenated", "concatenated_I2.fastq.gz")
+barcodesOut = os.path.join("results", "barcodes")
+
+cmdStr = ""
+
+if rev_bc1 == True:
+	cmdStr = "extract_barcodes.py --input_type barcode_paired_end -f " + barcode1 + " -r " + barcode2 + " --bc1_len " + str(bc1_len) + " --bc2_len " + str(bc2_len) + " -o " + barcodesOut + " --rev_comp_bc1"
+else:
+	cmdStr = "extract_barcodes.py --input_type barcode_paired_end -f " + barcode1 + " -r " + barcode2 + " --bc1_len " + str(bc1_len) + " --bc2_len " + str(bc2_len) + " -o " + barcodesOut	
+
+extractCommand.write(cmdStr)
+extractCommand.close()
 
 #----- Rename input files -----#
 
 rename_files(config)
 
-READDIR = config["Paths"]["Reads"]
-READEXT = config["Patterns"]["ReadExtensions"]
-
-SAMPLES, = glob_wildcards(os.path.join(READDIR, "{sample}_R1.fastq.gz")) 
-SEQTYPE = ["R1", "R2", "I1", "I2"]
+SAMPLES, = glob_wildcards(os.path.join(READDIR, "renamed", "{sample}_R1.fastq.gz"))
 
 PATTERN_R1 = "{sample}_R1"
 PATTERN_R2 = "{sample}_R2"
@@ -26,10 +66,75 @@ PATTERN_I2 = "{sample}_I2"
 
 #----- Snakemake Workflow -----#
 
+rule all:
+	input:
+		directory(os.path.join("results", "split_samples"))
+
 rule concatenate:
 	input:
-		expand("READDIR/{sample}_{seqType}{readExt}", sample = SAMPLES, seqType = SEQTYPE, readExt = READEXT)
+		r1 = expand(os.path.join(READDIR, "renamed", PATTERN_R1 + ".fastq.gz"), sample = SAMPLES),
+		r2 = expand(os.path.join(READDIR, "renamed", PATTERN_R2 + ".fastq.gz"), sample = SAMPLES),
+		i1 = expand(os.path.join(READDIR, "renamed", PATTERN_I1 + ".fastq.gz"), sample = SAMPLES),
+		i2 = expand(os.path.join(READDIR, "renamed", PATTERN_I2 + ".fastq.gz"), sample = SAMPLES)
 	output:
-		expand("READDIR/concatenated/{seqType}.fastq.gz", seqType = SEQTYPE)
+		r1 = os.path.join("results", "concatenated", "concatenated_R1.fastq.gz"),
+		r2 = os.path.join("results", "concatenated", "concatenated_R2.fastq.gz"),
+		i1 = os.path.join("results", "concatenated", "concatenated_I1.fastq.gz"),
+		i2 = os.path.join("results", "concatenated", "concatenated_I2.fastq.gz")
 	shell:
-		"cat input > output"
+		"""
+		cat {input.r1} > {output.r1}
+		cat {input.r2} > {output.r2}
+		cat {input.i1} > {output.i1}
+		cat {input.i2} > {output.i2}
+		"""
+
+rule extract_barcodes:
+	input:
+		i1 = os.path.join("results", "concatenated", "concatenated_I1.fastq.gz"),
+		i2 = os.path.join("results", "concatenated", "concatenated_I2.fastq.gz")
+	params:
+		outdir = os.path.join("results", "barcodes")
+	output:
+		os.path.join("results", "barcodes", "barcodes.fastq")
+	shell:
+		"""
+		ml qiime
+		bash ./workflow/scripts/extractCommand.sh
+		"""
+
+rule demultiplex_R1:
+	input:
+		r1 = os.path.join("results", "concatenated", "concatenated_R1.fastq.gz"),
+		bc = os.path.join("results", "barcodes", "barcodes.fastq")
+	params:
+		outdir = os.path.join("results", "demultiplexed")
+	output:
+		os.path.join("results", "demultiplexed", "seqs.fastq")
+	shell:
+		"""
+		ml qiime
+		split_libraries_fastq.py \
+			-i {input.r1} \
+			-b {input.bc} \
+			-o {params.outdir} \
+			-m {MAP} \
+			--barcode_type {bc_type} \
+			--store_demultiplexed_fastq \
+			-r 999 -n 999 -q 0 -p 0.001
+		"""
+
+rule split_demux_R1:
+	input:
+		os.path.join("results", "demultiplexed", "seqs.fastq")
+	output:
+		directory(os.path.join("results", "split_samples"))
+	shell:
+		"""
+		ml qiime
+		split_sequence_file_on_sample_ids.py \
+			-i {input} \
+			-o {output} \
+			--file_type fastq
+		"""
+
