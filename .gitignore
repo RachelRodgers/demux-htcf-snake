@@ -1,4 +1,9 @@
+# Directories
 resources/
 results/
 logs_slurm/
 data/
+
+# Files
+workflow/scripts/extractCommand.sh
+
