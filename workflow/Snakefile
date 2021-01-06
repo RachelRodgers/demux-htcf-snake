@@ -68,7 +68,8 @@ PATTERN_I2 = "{sample}_I2"
 
 rule all:
 	input:
-		directory(os.path.join("results", "split_samples"))
+		directory(os.path.join("results", "split_samples_R1")),
+		directory(os.path.join("results", "split_samples_R2"))
 
 rule concatenate:
 	input:
@@ -108,9 +109,9 @@ rule demultiplex_R1:
 		r1 = os.path.join("results", "concatenated", "concatenated_R1.fastq.gz"),
 		bc = os.path.join("results", "barcodes", "barcodes.fastq")
 	params:
-		outdir = os.path.join("results", "demultiplexed")
+		outdir = os.path.join("results", "demultiplexed_R1")
 	output:
-		os.path.join("results", "demultiplexed", "seqs.fastq")
+		os.path.join("results", "demultiplexed_R1", "seqs.fastq")
 	shell:
 		"""
 		ml qiime
@@ -124,17 +125,76 @@ rule demultiplex_R1:
 			-r 999 -n 999 -q 0 -p 0.001
 		"""
 
-rule split_demux_R1:
+rule demultiplex_R2:
 	input:
-		os.path.join("results", "demultiplexed", "seqs.fastq")
+		r2 = os.path.join("results", "concatenated", "concatenated_R2.fastq.gz"),
+		bc = os.path.join("results", "barcodes", "barcodes.fastq")
+	params:
+		outdir = os.path.join("results", "demultiplexed_R2")
 	output:
-		directory(os.path.join("results", "split_samples"))
+		os.path.join("results", "demultiplexed_R2", "seqs.fastq")
 	shell:
 		"""
 		ml qiime
+		split_libraries_fastq.py \
+			-i {input.r2} \
+			-b {input.bc} \
+			-o {params.outdir} \
+			-m {MAP} \
+			--barcode_type {bc_type} \
+			--store_demultiplexed_fastq \
+			--rev_comp \
+			-r 999 -n 999 -q 0 -p 0.001
+		"""
+		
+rule split_demux_R1:
+	input:
+		os.path.join("results", "demultiplexed_R1", "seqs.fastq")
+	output:
+		outdir = directory(os.path.join("results", "split_samples_R1")),
+		fin = os.path.join("results", "split_simples_R1", "finished.txt")
+	shell:
+		"""
+		ml qiime
+
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {output} \
+			-o {output.outdir} \
 			--file_type fastq
+
+		touch {output.fin}
 		"""
 
+rule split_demux_R2:
+	input:
+		os.path.join("results", "demultiplexed_R2", "seqs.fastq"),
+	output:
+		outdir = directory(os.path.join("results", "split_samples_R2")),
+		fin = os.path.join("results", "split_samples_R2", "finished.txt")
+	shell:
+		"""
+		ml qiime
+
+		split_sequence_file_on_sample_ids.py \
+			-i {input} \
+			-o {output.outdir} \
+			--file_type fastq
+
+		touch {output.fin}
+		"""
+
+rule edit_extensions:
+	input:
+		r1Fin = os.path.join("results", "split_samples_R1", "finished.txt"),
+		r2Fin = os.path.join("results", "split_samples_R2", "finished.txt")
+	output:
+		r1Out = directory(os.path.join("results", "split_samples_R1", "renamed_R1")),
+		r2Out = directory(os.path.join("results", "split_samples_R2", "renamed_R2"))
+	shell:
+		"""
+		rename 's/\.fastq$/_R1.fastq/' ./results/split_samples_R1/*fastq 
+		mv ./results/split_samples_R1/*_R1.fastq ./results/split_samples_R1/renamed_R1/
+
+		rename 's/\.fastq$/_R2.fastq/' ./results/split_samples_R2/*fastq
+		mv ./results/split_samples_R2/*_R2.fastq ./results/split_samples_R2/renamed_R2/
+		"""
