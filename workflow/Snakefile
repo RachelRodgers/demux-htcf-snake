@@ -68,8 +68,8 @@ PATTERN_I2 = "{sample}_I2"
 
 rule all:
 	input:
-		directory(os.path.join("results", "split_samples_R1")),
-		directory(os.path.join("results", "split_samples_R2"))
+		directory(os.path.join("results", "split_samples_R1", "renamed_R1")),
+		directory(os.path.join("results", "split_samples_R2", "renamed_R2"))
 
 rule concatenate:
 	input:
