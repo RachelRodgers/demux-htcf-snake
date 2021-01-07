@@ -150,16 +150,18 @@ rule demultiplex_R2:
 rule split_demux_R1:
 	input:
 		os.path.join("results", "demultiplexed_R1", "seqs.fastq")
+	params:
+		outdir = directory(os.path.join("results", "split_samples_R1"))
 	output:
-		outdir = directory(os.path.join("results", "split_samples_R1")),
-		fin = os.path.join("results", "split_simples_R1", "finished.txt")
+		#outdir = directory(os.path.join("results", "split_samples_R1")),
+		fin = os.path.join("results", "split_samples_R1", "finished.txt")
 	shell:
 		"""
 		ml qiime
 
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {output.outdir} \
+			-o {params.outdir} \
 			--file_type fastq
 
 		touch {output.fin}
@@ -168,8 +170,10 @@ rule split_demux_R1:
 rule split_demux_R2:
 	input:
 		os.path.join("results", "demultiplexed_R2", "seqs.fastq"),
+	params:
+		outdir = directory(os.path.join("results", "split_samples_R2"))
 	output:
-		outdir = directory(os.path.join("results", "split_samples_R2")),
+		#outdir = directory(os.path.join("results", "split_samples_R2")),
 		fin = os.path.join("results", "split_samples_R2", "finished.txt")
 	shell:
 		"""
@@ -177,7 +181,7 @@ rule split_demux_R2:
 
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {output.outdir} \
+			-o {params.outdir} \
 			--file_type fastq
 
 		touch {output.fin}
