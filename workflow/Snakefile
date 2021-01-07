@@ -7,6 +7,7 @@ Rachel Rodgers, Dec 2020
 
 import os
 import sys
+import pandas
 
 #sys.path.append("./workflow/scripts/snakemake_helpers")
 sys.path.append(os.path.join("workflow", "scripts", "snakemake_helpers"))
@@ -63,6 +64,11 @@ PATTERN_R1 = "{sample}_R1"
 PATTERN_R2 = "{sample}_R2"
 PATTERN_I1 = "{sample}_I1"
 PATTERN_I2 = "{sample}_I2"
+
+#----- Get New Sample Names -----#
+colnames = ['#SampleID']
+NEW = pandas.read_csv(MAP, sep = "\t", names = colnames)
+print(NEW)
 
 #----- Snakemake Workflow -----#
 
@@ -150,41 +156,36 @@ rule demultiplex_R2:
 rule split_demux_R1:
 	input:
 		os.path.join("results", "demultiplexed_R1", "seqs.fastq")
-	params:
-		outdir = directory(os.path.join("results", "split_samples_R1"))
+	#params:
+		#outdir = directory(os.path.join("results", "split_samples_R1"))
 	output:
-		#outdir = directory(os.path.join("results", "split_samples_R1")),
-		fin = os.path.join("results", "split_samples_R1", "finished.txt")
+		outdir = directory(os.path.join("results", "split_samples_R1")),
+		#fin = os.path.join("results", "split_samples_R1", "finished.txt")
 	shell:
 		"""
 		ml qiime
-
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {params.outdir} \
+			-o {output.outdir} \
 			--file_type fastq
-
-		touch {output.fin}
 		"""
 
 rule split_demux_R2:
 	input:
 		os.path.join("results", "demultiplexed_R2", "seqs.fastq"),
-	params:
-		outdir = directory(os.path.join("results", "split_samples_R2"))
+	#params:
+		#outdir = directory(os.path.join("results", "split_samples_R2"))
 	output:
-		#outdir = directory(os.path.join("results", "split_samples_R2")),
-		fin = os.path.join("results", "split_samples_R2", "finished.txt")
+		outdir = directory(os.path.join("results", "split_samples_R2")),
+		#fin = os.path.join("results", "split_samples_R2", "finished.txt")
 	shell:
 		"""
 		ml qiime
 
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {params.outdir} \
+			-o {output.outdir} \
 			--file_type fastq
-
-		touch {output.fin}
 		"""
 
 rule edit_extensions:
