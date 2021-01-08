@@ -7,7 +7,6 @@ Rachel Rodgers, Dec 2020
 
 import os
 import sys
-import pandas
 
 #sys.path.append("./workflow/scripts/snakemake_helpers")
 sys.path.append(os.path.join("workflow", "scripts", "snakemake_helpers"))
@@ -33,6 +32,7 @@ READDIR = config["Paths"]["Reads"]
 qiime = config["Tools"]["qiime"]
 
 #----- Write Extract Barcodes Command-----#
+
 #extractCommand = open("./workflow/scripts/extractCommand.sh", "w")
 extractCommand = open(os.path.join("workflow", "scripts", "extractCommand.sh"), "w")
 
@@ -66,16 +66,16 @@ PATTERN_I1 = "{sample}_I1"
 PATTERN_I2 = "{sample}_I2"
 
 #----- Get New Sample Names -----#
-colnames = ['#SampleID']
-NEW = pandas.read_csv(MAP, sep = "\t", names = colnames)
+
+NEW = get_new_names(config) 
 print(NEW)
 
 #----- Snakemake Workflow -----#
 
 rule all:
 	input:
-		directory(os.path.join("results", "split_samples_R1", "renamed_R1")),
-		directory(os.path.join("results", "split_samples_R2", "renamed_R2"))
+		r1 = expand(os.path.join("results", "compressed", "{new}_R1.fastq.gz"), new = NEW),
+                r2 = expand(os.path.join("results", "compressed", "{new}_R2.fastq.gz"), new = NEW)
 
 rule concatenate:
 	input:
@@ -156,50 +156,62 @@ rule demultiplex_R2:
 rule split_demux_R1:
 	input:
 		os.path.join("results", "demultiplexed_R1", "seqs.fastq")
-	#params:
-		#outdir = directory(os.path.join("results", "split_samples_R1"))
+	params:
+		directory(os.path.join("results", "split_samples_R1"))
 	output:
-		outdir = directory(os.path.join("results", "split_samples_R1")),
-		#fin = os.path.join("results", "split_samples_R1", "finished.txt")
+		expand(os.path.join("results", "split_samples_R1", "{new}.fastq"), new = NEW)
+		#directory(os.path.join("results", "split_samples_R1"))
 	shell:
 		"""
 		ml qiime
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {output.outdir} \
+			-o {params} \
 			--file_type fastq
 		"""
 
 rule split_demux_R2:
 	input:
-		os.path.join("results", "demultiplexed_R2", "seqs.fastq"),
-	#params:
-		#outdir = directory(os.path.join("results", "split_samples_R2"))
+		os.path.join("results", "demultiplexed_R2", "seqs.fastq")
+	params:
+		directory(os.path.join("results", "split_samples_R2"))
 	output:
-		outdir = directory(os.path.join("results", "split_samples_R2")),
-		#fin = os.path.join("results", "split_samples_R2", "finished.txt")
+		expand(os.path.join("results", "split_samples_R2", "{new}.fastq"), new = NEW)
+		#directory(os.path.join("results", "split_samples_R2"))
 	shell:
 		"""
 		ml qiime
-
 		split_sequence_file_on_sample_ids.py \
 			-i {input} \
-			-o {output.outdir} \
+			-o {params} \
 			--file_type fastq
 		"""
 
 rule edit_extensions:
 	input:
-		r1Fin = os.path.join("results", "split_samples_R1", "finished.txt"),
-		r2Fin = os.path.join("results", "split_samples_R2", "finished.txt")
+		r1 = expand(os.path.join("results", "split_samples_R1", "{new}.fastq"), new = NEW),
+		r2 = expand(os.path.join("results", "split_samples_R2", "{new}.fastq"), new = NEW)
 	output:
-		r1Out = directory(os.path.join("results", "split_samples_R1", "renamed_R1")),
-		r2Out = directory(os.path.join("results", "split_samples_R2", "renamed_R2"))
+		r1 = expand(os.path.join("results", "split_samples_R1", "{new}_R1.fastq"), new = NEW),
+		r2 = expand(os.path.join("results", "split_samples_R2", "{new}_R2.fastq"), new = NEW)
 	shell:
 		"""
-		rename 's/\.fastq$/_R1.fastq/' ./results/split_samples_R1/*fastq 
-		mv ./results/split_samples_R1/*_R1.fastq ./results/split_samples_R1/renamed_R1/
-
+		rename 's/\.fastq$/_R1.fastq/' ./results/split_samples_R1/*fastq
+		
 		rename 's/\.fastq$/_R2.fastq/' ./results/split_samples_R2/*fastq
-		mv ./results/split_samples_R2/*_R2.fastq ./results/split_samples_R2/renamed_R2/
 		"""
+
+rule compress:
+	input:
+		r1 = expand(os.path.join("results", "split_samples_R1", "{new}_R1.fastq"), new = NEW),
+                r2 = expand(os.path.join("results", "split_samples_R2", "{new}_R2.fastq"), new = NEW)
+	output:
+		r1 = expand(os.path.join("results", "compressed", "{new}_R1.fastq.gz"), new = NEW),
+		r2 = expand(os.path.join("results", "compressed", "{new}_R2.fastq.gz"), new = NEW)
+	shell:
+		"""
+		cp ./results/split_samples_R1/*.fastq ./results/compressed/
+		mv ./results/split_samples_R2/*.fastq ./results/compressed/
+		gzip ./results/compressed/*
+		"""
+
