@@ -13,7 +13,7 @@ mkdir -p ~/.config/snakemake/slurm_demux
 5. Copy the cluster submit and profile files to the appropriate locations:
 ```
 cd hecatomb_htcf_snake
-cp config/config.yaml ~/.config/snakemake/slurm_hecatomb
+cp config/config.yaml ~/.config/snakemake/slurm_demux
 cp slurm-submit/*.py ~/.config/snakemake
 ```
 6. Create a directory to hold your sequences to be demultiplexed and move your data to that directory.
