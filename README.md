@@ -12,7 +12,7 @@ mkdir -p ~/.config/snakemake/slurm_demux
 ```
 5. Copy the cluster submit and profile files to the appropriate locations:
 ```
-cd hecatomb_htcf_snake
+cd demux_htcf_snake
 cp config/config.yaml ~/.config/snakemake/slurm_demux
 cp slurm-submit/*.py ~/.config/snakemake
 ```
