@@ -10,16 +10,20 @@ git clone --recurse-submodules https://github.com/RachelRodgers/demux-htcf-snake
 ```
 mkdir -p ~/.config/snakemake/slurm_demux
 ```
-5. Copy the cluster submit and profile files to the appropriate locations:
+5. Edit line 2 of the config.yaml file to include your email address:
 ```
-cd demux_htcf_snake
+--mail-user=<yourEmailAddress>
+```
+6. Copy the cluster submit and profile files to the appropriate locations:
+```
+cd demux-htcf-snake
 cp config/config.yaml ~/.config/snakemake/slurm_demux
 cp slurm-submit/*.py ~/.config/snakemake
 ```
-6. Create a directory to hold your sequences to be demultiplexed and move your data to that directory.
-7. Create a directory to hold your mapping file and copy your mapping file to that directory.
-8. Edit the ./config/demux_config.yaml file appropriately.
-9. Submit in one of two ways:
+7. Create a directory to hold your sequences to be demultiplexed and move your data to that directory.
+8. Create a directory to hold your mapping file and copy your mapping file to that directory.
+9. Edit the ./config/demux_config.yaml file appropriately.
+10. Submit in one of two ways:
 	a. With sbatch script:
 	```
 	sbatch submit_demux_snake.sbatch
@@ -38,4 +42,4 @@ cp slurm-submit/*.py ~/.config/snakemake
 	# production run:
 	snakemake --profile slurm_demux
 	```
-10. See slurm output files in the logs_slurm/ directory which will generate inside the repository's directory.
+11. See slurm output files in the logs_slurm/ directory which will generate inside the repository's directory.
