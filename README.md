@@ -4,7 +4,7 @@
 2. Move to your /scratch/ directory.
 3. Clone the repo:
 ```
-git clone --recurse-submodules https://github.com/RachelRodgers/demux-htcf-snake.git
+git clone --recurse-submodules git@github.com:RachelRodgers/demux-htcf-snake.git
 ```
 4. Make a directory to hold the snakemake profile:
 ```
